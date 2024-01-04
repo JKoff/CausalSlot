@@ -1,0 +1,17 @@
+name: causalslot
+version: 0.1.0
+
+authors:
+  - Jonathan Koff <jonathan@jkoff.ca>
+
+dependencies:
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
+
+targets:
+  causalslot:
+    main: src/causalslot.cr
+
+crystal: '>= 1.10.1'
+
+license: MIT

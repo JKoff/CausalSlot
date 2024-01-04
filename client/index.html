@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demo Client</title>
+</head>
+<body>
+    <div>
+        <label for="host">Host:</label>
+        <input type="text" id="host" value="http://127.0.0.1:8081">
+
+        <label for="address">Address:</label>
+        <input type="text" id="address" value="a6cf93a89f3b1f8d4d1413353d563cc92382731c6de15c00a5e25f7a72af0974">
+
+        <button type="submit" id="read" class="btn btn-primary">Read</button>
+    </div>
+
+    <div>
+        <label for="versions">Versions (comma-separated):</label>
+        <input type="text" id="versions" value="">
+        <label for="contents">Contents:</label>
+        <input type="text" id="contents" value="Testing">
+        <button type="submit" id="write" class="btn btn-primary">Write</button>
+    </div>
+
+    <div id="data"></div>
+
+    <div id="status"></div>
+
+    <script>
+        const operations = {
+            read: {
+                parse: (arraybuffer) => {
+                    const ENDIAN = false;  // big endian
+                    const dataview = new DataView(arraybuffer);
+
+                    const result = [];
+                    let i = 0;
+
+                    // # Magic number (8 bytes)
+                    const magic = dataview.getBigUint64(i, ENDIAN);
+                    i += 8;
+                    if (magic !== 0x5662207738999eccn) {
+                        throw new Error('Invalid magic number');
+                    }
+
+                    // # Protocol version (8 bytes)
+                    const protovsn = dataview.getBigUint64(i, ENDIAN);
+                    i += 8;
+                    if (protovsn !== 0x00000001n) {
+                        throw new Error('Invalid protocol version number');
+                    }
+
+                    while (i < arraybuffer.byteLength) {
+                        const size = dataview.getBigUint64(i, ENDIAN);
+                        i += 8;
+                        const vsn = dataview.getBigUint64(i, ENDIAN);
+                        i += 8;
+                        const dat = arraybuffer.slice(i, i + Number(size) - 8);
+                        i += Number(size) - 8;
+                        result.push({ vsn, dat });
+                    }
+
+                    return result;
+                },
+            },
+            write: {
+                makeRequestBody: (versions, payload) => {
+                    const ENDIAN = false;  // big endian
+                    const result = new Uint8Array(8 * 4 + 8 * versions.length + payload.length);
+                    const dataview = new DataView(result.buffer);
+                    let i = 0;
+
+                    // # Magic number (8 bytes)
+                    dataview.setBigUint64(i, 0x5662207738999eccn, ENDIAN);
+                    i += 8;
+
+                    // # Protocol version (8 bytes)
+                    dataview.setBigUint64(i, 0x00000001n, ENDIAN);
+                    i += 8;
+
+                    // # Version count (8 bytes)
+                    dataview.setBigUint64(i, BigInt(versions.length), ENDIAN);
+                    i += 8;
+
+                    for (const version of versions) {
+                        // # Version (8 bytes)
+                        dataview.setBigUint64(i, version, ENDIAN);
+                        i += 8;
+                    }
+
+                    // # Size (8 bytes)
+                    dataview.setBigUint64(i, BigInt(payload.length), ENDIAN);
+                    i += 8;
+
+                    // # Data (variable)
+                    result.set(payload, i);
+                    i += payload.length;
+                    
+                    if (i !== result.length) {
+                        console.log('Unexpected result length: ', result.length, ", expected ", i);
+                    }
+
+                    return result;
+                },
+                parseResponse: arraybuffer => {
+                    const ENDIAN = false;  // big endian
+                    const dataview = new DataView(arraybuffer);
+
+                    // # New version (8 bytes)
+                    return dataview.getBigUint64(0, ENDIAN);
+                },
+            },
+        };
+
+        const read = async () => {
+            const host = document.querySelector('#host').value;
+            const address = document.querySelector('#address').value;
+            const response = await fetch(`${host}/address/${address}`, {
+                method: 'GET',
+                mode: 'cors',
+            });
+            const ab = await response.arrayBuffer();
+
+            const root = document.createElement('div');
+            root.id = 'data';
+            for (const { vsn, dat } of operations.read.parse(ab)) {
+                const el = document.createElement('div');
+                el.innerHTML = `<pre>${Number(vsn)}: ${new TextDecoder().decode(dat)}</pre>`;
+                root.appendChild(el);
+            }
+            document.querySelector('#data').replaceWith(root);
+        };
+
+        document.querySelector('#read').addEventListener('click', async function (e) {
+            e.preventDefault();
+            read();
+        });
+
+        document.querySelector('#write').addEventListener('click', async function (e) {
+            e.preventDefault();
+            const host = document.querySelector('#host').value;
+            const address = document.querySelector('#address').value;
+            const versions = document.querySelector('#versions').value.split(',').filter(v => v).map(BigInt);
+            const response = await fetch(`${host}/address/${address}`, {
+                method: 'POST',
+                mode: 'cors',
+                body: operations.write.makeRequestBody(versions, new TextEncoder().encode(document.querySelector('#contents').value)),
+            });
+            document.querySelector('#versions').value = Number(operations.write.parseResponse(await response.arrayBuffer()));
+            // TODO: Use new version id from response.
+
+            document.querySelector('#status').value = `Write completed with status ${response.status}`;
+
+            read();
+        });
+    </script>
+</body>
+</html>
