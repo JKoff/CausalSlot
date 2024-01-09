@@ -8,7 +8,7 @@ require "sqlite3"
 require "./localserver"
 require "./remoteserver"
 
-module Bitplane
+module CausalSlot
   VERSION = "0.1.0"
 
   localuri = "tcp://127.0.0.1:8080"
