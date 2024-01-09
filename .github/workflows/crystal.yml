@@ -21,12 +21,3 @@ jobs:
     - name: Run tests
       run: crystal spec
 
-  release_linux:
-    runs-on: ubuntu-latest
-    container:
-      image: crystallang/crystal:latest-alpine
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install packages
-        run: apk add --update --upgrade --no-cache --force-overwrite sqlite-dev
-      - run: shards build --production --release --static --no-debug
