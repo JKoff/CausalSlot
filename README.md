@@ -15,7 +15,8 @@ Causal:
 - Merging is left as an exercise to the application.
 - Does not offer strong consistency.
 
-TODO(jkoff): Link to client library.
+Client libraries:
+- [TypeScript](https://github.com/JKoff/CausalSlot-TS-Client)
 
 ## Installation
 
