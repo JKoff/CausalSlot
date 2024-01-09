@@ -26,5 +26,7 @@ jobs:
     container:
       image: crystallang/crystal:latest-alpine
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - name: Install packages
+        run: sudo apt-get -qy install libsqlite3-dev
       - run: shards build --production --release --static --no-debug
