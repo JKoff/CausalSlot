@@ -28,5 +28,5 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install packages
-        run: apk add --update --upgrade --no-cache --force-overwrite libsqlite-dev
+        run: apk add --update --upgrade --no-cache --force-overwrite sqlite-dev
       - run: shards build --production --release --static --no-debug
