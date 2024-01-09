@@ -32,7 +32,7 @@ module CausalSlot
   end
 
   OptionParser.parse do |parser|
-    parser.banner = "Bitplane"
+    parser.banner = "CausalSlot"
 
     parser.on "-v", "--version", "Show version" do
       puts "version 0.1alpha"
